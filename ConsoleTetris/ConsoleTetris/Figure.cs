@@ -16,16 +16,20 @@ namespace ConsoleTetris
 
         private byte[,] FigureShape { get; set; }
 
-        public Figure(sbyte type, byte[,] tetris)
+        public Figure(byte[,] tetris)
         {
-            Type = type;
-            PosX = tetris.GetLength(1) / 2;
-            PosY = 0;
-
             Tetris = tetris;
 
-            Color = GetFigureColor(type);
-            FigureShape = GetFigureShape(type);           
+            ResetFigure();
+        }
+
+        private void ResetFigure()
+        {
+            Type = (sbyte)Rand.Next(1, 7);
+            Color = GetFigureColor(Type);
+            FigureShape = GetFigureShape(Type);
+            PosX = Tetris.GetLength(1) / 2;
+            PosY = 0;
         }
 
         public ConsoleColor GetFigureColor(sbyte type)
@@ -34,7 +38,7 @@ namespace ConsoleTetris
             switch (type)
             {
                 case 0:
-                    return ConsoleColor.DarkGray;
+                    return ConsoleColor.Black;
 
                 case 1:
                 case 11:
@@ -320,35 +324,38 @@ namespace ConsoleTetris
                     newShape[0, midlX + 1] = 1;
                     newShape[1, midlX - 1] = 1;
                     break;
+
+                // 5 * 11+2
+                // ### #  # ###
+                //  #  #  # #
+                //  #  #### ###
+                //  #  #  # #
+                //  #  #  # ###
+                //
+                // ### #  # ##
+                // #   ## # # #
+                // ### # ## #  # 
+                // #   #  # # #
+                // ### #  # ##
             }
 
             return newShape;
         }
 
-        public void CreateNewFigure()
-        {
-            PosX = Tetris.GetLength(1) / 2;
-            PosY = 0;
-            
-            Figure figure = new Figure((sbyte)Rand.Next(1, 7), Tetris);
-            //FigureShape = GetFigureShape(Type);
-            PaintNewScreen(Tetris, figure);
-
-            figure.Display();
-        }
-
-        public void PaintNewScreen(byte[,] tetris, Figure figure)
+        public void PaintNewScreen()
         {
             Console.Clear();
 
-            for (int y = 0; y < tetris.GetLength(0); y++)
+            for (int y = 0; y < Tetris.GetLength(0); y++)
             {
+                Console.ResetColor();
                 Console.Write("\u2503"); // left border
-                for (int x = 0; x < tetris.GetLength(1); x++)
+                for (int x = 0; x < Tetris.GetLength(1); x++)
                 {
-                    Console.ForegroundColor = figure.GetFigureColor((sbyte)tetris[y, x]);
+                    Console.ForegroundColor = GetFigureColor((sbyte)Tetris[y, x]);
 
-                    Console.Write("\u2588" + x.ToString().Substring(x.ToString().Length - 1));//black square as empty field
+                    Console.Write("\u2588\u2588");
+                    //Console.Write("\u2588" + x.ToString().Substring(x.ToString().Length - 1));//black square as empty field
                     Console.ResetColor();
                 }
                 Console.Write("\u2503"); // right border
@@ -357,7 +364,7 @@ namespace ConsoleTetris
 
             //generate bottom border
             Console.Write("\u2523");
-            for (int i = 0; i < tetris.GetLength(1) * 2; i++)
+            for (int i = 0; i < Tetris.GetLength(1) * 2; i++)
                 Console.Write("\u2501");
             Console.Write("\u252B");
         }
@@ -406,7 +413,7 @@ namespace ConsoleTetris
             Display();
         }
 
-        public static byte[,] ShiftBytes(byte[,] figure, ref int shift)
+        public byte[,] ShiftBytes(byte[,] figure, ref int shift)
         {
             bool blockMove = true;
             int canShift = 0;
@@ -513,16 +520,66 @@ namespace ConsoleTetris
                     if (blockMove)
                     {
                         PosY = PosYold;
-
-                        SaveFigureAtTetris(FigureShape, PosY);
-
-                        CreateNewFigure();
+                        SetThisAndMakeNew();
                     }
+                }
+                else // already at bottom
+                {
+                    SetThisAndMakeNew();
                 }
             }
 
-            Color = ColorDefault;
+            Color = GetFigureColor(Type);
             Display();
+        }
+
+        private void SetThisAndMakeNew()
+        {
+            SaveFigureAtTetris(FigureShape, PosY);
+
+            RemoveFullRows();
+
+            PaintNewScreen();
+
+            ResetFigure();
+
+            bool isThisEndOfGame = CheckCellIsBusy(FigureShape, Tetris, PosY);
+            if (isThisEndOfGame)
+            {
+                for (int i = 0; i < 12; i++)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Final");
+                }
+            }
+        }
+
+        private void RemoveFullRows()
+        {
+            for (int row = Tetris.GetLength(0) - 1; row >= 0; row--)
+            {
+                bool needAction = true;
+                for (int cell = 0; cell < Tetris.GetLength(1); cell++)
+                {
+                    if (Tetris[row, cell] == 0)//if row not fullfilled
+                    {
+                        needAction = false;
+                        break;
+                    }
+                }
+
+                if (needAction)
+                {
+                    Array.Copy(Tetris, 0, Tetris, Tetris.GetLength(1), Tetris.GetLength(1) * row);
+
+                    //top line must be filled 0 - delete old copied data
+                    for (int cell = 0; cell < Tetris.GetLength(1); cell++)
+                    {
+                        Tetris[0, cell] = 0;
+                    }
+                    RemoveFullRows();
+                }
+            }
         }
 
         private void SaveFigureAtTetris(byte[,] figure, int posY)
@@ -539,7 +596,6 @@ namespace ConsoleTetris
                     }
                 }
             }
-
         }
 
         /// <summary>
@@ -552,31 +608,11 @@ namespace ConsoleTetris
         private bool CheckCellIsBusy(byte[,] newFigureShape, byte[,] tetris, int posY)
         {
             bool result = false;
-            
-            Console.BackgroundColor = ConsoleColor.DarkGray;
-            Color = ConsoleColor.White;
-            
-            Console.SetCursorPosition(0, Tetris.GetLength(0) + 9);
-            Console.WriteLine("\nfigure low y=" + newFigureShape.GetLength(0) + "+" + posY);
-            /*
-            //проверить что фигура не вылетает вниз
-            if (newFigureShape.GetLength(0) + posY > tetris.GetLength(0))//нижняя строка
-            {
-                result = true;
-                return result;
-            }
-            */
+
             for (int rows = 0; rows < newFigureShape.GetLength(0); rows++) 
             {
                 for (int cell = 0; cell < Tetris.GetLength(1); cell++)
                 {
-                    /*
-                    Color = ConsoleColor.White;
-                    Console.SetCursorPosition(0, Tetris.GetLength(0) + 6);
-                    Console.Write(Tetris[posY + rows, cell].ToString() + "/" + newFigureShape[rows, cell].ToString() + "; ");
-                    Console.SetCursorPosition(0, Tetris.GetLength(0) + 9);
-                    Console.Write(Tetris[posY + rows, cell].ToString() + "*rows=" + rows + "*cell=" + cell + "*");
-                    */
                     if (posY + rows >= Tetris.GetLength(0))//if new figure try to display below y axis of tetris array
                     {
                         result = true;
@@ -604,7 +640,7 @@ namespace ConsoleTetris
                 {
                     if (FigureShape[y, x] != 0)
                     {
-                        Console.SetCursorPosition(x * 2 + 1, y + PosY);// x*2 + 1 == 1 is a border size
+                        Console.SetCursorPosition(x * 2 + 1, y + PosY);// x*2 + 1 where 1 is a border size
                         Console.Write("\u2588\u2588");
                     }
                 }
@@ -612,10 +648,10 @@ namespace ConsoleTetris
             }
 
             //info block
-            Console.SetCursorPosition(0, Tetris.GetLength(0) + 1);            
-            Console.Write($"\n{Type}.{Color}   x={PosX}/{Tetris.GetLength(1) / 2} y={PosY} \n");
+            //Console.SetCursorPosition(0, Tetris.GetLength(0) + 1);            
+            //Console.Write($"\n{Type}.{Color}   x={PosX}/{Tetris.GetLength(1) / 2} y={PosY} \n");
 
-           
+           /*
             for (int y = 0; y < FigureShape.GetLength(0); y++)
             {
                 Console.SetCursorPosition(0, Tetris.GetLength(0) + 3 + y);
@@ -624,7 +660,8 @@ namespace ConsoleTetris
                     Console.Write(FigureShape[y, x]);
                 }
                 //Console.SetCursorPosition(0, Tetris.GetLength(0) + 4);
-            }            
+            }
+           */
         }
     }
 }

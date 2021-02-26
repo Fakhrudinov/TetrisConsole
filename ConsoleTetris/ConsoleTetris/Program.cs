@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 
 namespace ConsoleTetris
 {
@@ -8,9 +9,12 @@ namespace ConsoleTetris
     class Program
     {
         //set field size
-        public static byte x = 13;
+        static byte x = 12;
         static byte y = 20;
-        static byte indentTop = 6;
+        static byte indentTop = 2;
+
+        static byte[,] tetris = new byte[y, x];
+        static Figure figure = new Figure(tetris);
 
         static void Main(string[] args)
         {
@@ -20,27 +24,26 @@ namespace ConsoleTetris
 
             Console.Title = "Tetris";
 
-            Console.WindowHeight = y + 20;
-            Console.WindowWidth = x * 2 + 60;
+            Console.WindowHeight = y + 5;
+            Console.WindowWidth = x * 2 + 10;
 
             Console.OutputEncoding = Encoding.UTF8;
             Stopwatch timer = new Stopwatch();
 
             Console.Clear();
 
-            byte[,] tetris = new byte[y,x];
-            tetris[y-1,x-1] = 3;
-            tetris[7, 7] = 3;
-            tetris[1, 0] = 3;
-            tetris[4, 4] = 2;
+            //byte[,] tetris = new byte[y,x];
 
-            Random rand = new Random();            
+            //Random rand = new Random();
 
-            Figure figure = new Figure((sbyte)rand.Next(1, 7), tetris);
+
+            
+            //Figure figure = new Figure(tetris);
             //Figure figure = new Figure(1, tetris);
-            figure.PaintNewScreen(tetris, figure);
+            figure.PaintNewScreen();
             figure.Display();
 
+            Timer timerTick = new Timer(timerMove, null, 0, 1000);
 
             ConsoleKey choice;
             do
@@ -73,39 +76,17 @@ namespace ConsoleTetris
                         break;                   
                 }
 
-                Console.SetCursorPosition(0, y + indentTop + 1);
+                Console.SetCursorPosition(0, y + indentTop);
                 timer.Stop();
                 Console.Write("milliSeconds: " + timer.ElapsedMilliseconds);
 
             } while (choice != ConsoleKey.Escape);// && choice != ConsoleKey.X
         }
 
-        /*
-        private static void PaintNewScreen(byte[,] tetris, Figure figure)
+        static void timerMove(Object obj)
         {
-            Console.Clear();
-
-            for (int y = 0; y < tetris.GetLength(0); y++)
-            {
-                Console.Write("\u2503"); // left border
-                for (int x = 0; x < tetris.GetLength(1); x++)
-                {
-                    Console.ForegroundColor = figure.GetFigureColor((sbyte)tetris[y, x]);
-
-                    Console.Write("\u2588" + x.ToString().Substring(x.ToString().Length - 1));//black square as empty field
-                    Console.ResetColor();
-                }
-                Console.Write("\u2503"); // right border
-                Console.WriteLine();
-            }
-
-            //generate bottom border
-            Console.Write("\u2523");
-            for (int i = 0; i < tetris.GetLength(1) * 2; i++)
-                Console.Write("\u2501");
-            Console.Write("\u252B");
+            figure.MoveFigure(0, 1);
         }
-        */
     }
 }
 /*
