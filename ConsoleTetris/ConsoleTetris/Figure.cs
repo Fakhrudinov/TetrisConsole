@@ -16,9 +16,22 @@ namespace ConsoleTetris
 
         private byte[,] FigureShape { get; set; }
 
+        public sbyte Frequency { get; set; }
+
+        public bool CanMove { get; set; } = true;
+
         public Figure(byte[,] tetris)
         {
-            Tetris = tetris;
+            Field f = new Field();
+            Tetris = f.TetrisField;
+
+            ResetFigure();
+        }
+
+        public Figure()
+        {
+            Field f = new Field();
+            Tetris = f.TetrisField;
 
             ResetFigure();
         }
@@ -520,12 +533,12 @@ namespace ConsoleTetris
                     if (blockMove)
                     {
                         PosY = PosYold;
-                        SetThisAndMakeNew();
+                        FigureAtBottom();
                     }
                 }
                 else // already at bottom
                 {
-                    SetThisAndMakeNew();
+                    FigureAtBottom();
                 }
             }
 
@@ -533,7 +546,7 @@ namespace ConsoleTetris
             Display();
         }
 
-        private void SetThisAndMakeNew()
+        private void FigureAtBottom()
         {
             SaveFigureAtTetris(FigureShape, PosY);
 
@@ -546,11 +559,7 @@ namespace ConsoleTetris
             bool isThisEndOfGame = CheckCellIsBusy(FigureShape, Tetris, PosY);
             if (isThisEndOfGame)
             {
-                for (int i = 0; i < 12; i++)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Final");
-                }
+                CanMove = false;
             }
         }
 

@@ -9,12 +9,13 @@ namespace ConsoleTetris
     class Program
     {
         //set field size
-        static byte x = 12;
+        static byte x = 13;
         static byte y = 20;
-        static byte indentTop = 2;
+        //static byte indentTop = 2;
 
-        static byte[,] tetris = new byte[y, x];
-        static Figure figure = new Figure(tetris);
+        //static byte[,] tetris = new byte[y, x];
+        //static Figure figure = new Figure(tetris);
+        static Figure figure = new Figure();
 
         static void Main(string[] args)
         {
@@ -25,24 +26,17 @@ namespace ConsoleTetris
             Console.Title = "Tetris";
 
             Console.WindowHeight = y + 5;
-            Console.WindowWidth = x * 2 + 10;
+            Console.WindowWidth = x * 2 + 4;
 
             Console.OutputEncoding = Encoding.UTF8;
-            Stopwatch timer = new Stopwatch();
+            
+            //Stopwatch timer = new Stopwatch();
 
             Console.Clear();
 
-            //byte[,] tetris = new byte[y,x];
 
-            //Random rand = new Random();
-
-
-            
-            //Figure figure = new Figure(tetris);
-            //Figure figure = new Figure(1, tetris);
             figure.PaintNewScreen();
             figure.Display();
-
             Timer timerTick = new Timer(timerMove, null, 0, 1000);
 
             ConsoleKey choice;
@@ -50,7 +44,7 @@ namespace ConsoleTetris
             {
                 choice = Console.ReadKey(true).Key;
 
-                timer.Restart();
+                //timer.Restart();
                 switch (choice)
                 {
                     //case ConsoleKey.UpArrow:
@@ -64,7 +58,8 @@ namespace ConsoleTetris
                     
                     case ConsoleKey.DownArrow:
                     case ConsoleKey.Spacebar:
-                        figure.MoveFigure(0, 1);
+                        if (figure.CanMove)
+                            figure.MoveFigure(0, 1);
                         break;
                     
                     case ConsoleKey.LeftArrow:// move Left
@@ -76,16 +71,21 @@ namespace ConsoleTetris
                         break;                   
                 }
 
-                Console.SetCursorPosition(0, y + indentTop);
-                timer.Stop();
-                Console.Write("milliSeconds: " + timer.ElapsedMilliseconds);
+                //Console.SetCursorPosition(0, y + indentTop);
+                //timer.Stop();
+                //Console.Write("milliSeconds: " + timer.ElapsedMilliseconds);
+                //Console.Write(" bH=" + Console.BufferHeight);
+                //Console.Write(" bW=" + Console.BufferWidth);
 
             } while (choice != ConsoleKey.Escape);// && choice != ConsoleKey.X
         }
 
         static void timerMove(Object obj)
         {
-            figure.MoveFigure(0, 1);
+            if(figure.CanMove)
+                figure.MoveFigure(0, 1);
+
+            //timerTick.Change(0, 500);
         }
     }
 }
